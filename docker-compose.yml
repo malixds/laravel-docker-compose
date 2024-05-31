@@ -118,6 +118,7 @@ services:
       - ./src:/var/www/html:delegated
     depends_on:
       - mysql
+      - postgres
     entrypoint: [ 'php', '/var/www/html/artisan' ]
     networks:
       - laravel
