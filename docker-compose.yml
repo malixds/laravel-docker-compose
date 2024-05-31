@@ -20,6 +20,7 @@ services:
       - php
       - redis
       - mysql
+      - postgres
       - mailhog
     networks:
       - laravel
@@ -128,3 +129,6 @@ services:
       - "8025:8025"
     networks:
       - laravel
+
+volumes:
+  postgres:
