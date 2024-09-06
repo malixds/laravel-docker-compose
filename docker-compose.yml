@@ -1,7 +1,8 @@
 version: '3'
 
 networks:
-  app:
+  laravel:
+
 
 services:
   app:
@@ -17,24 +18,43 @@ services:
       - ./src:/var/www/html:delegated
     depends_on:
       - php
+      - redis
+      - mysql
       - postgres
+      - mailhog
     networks:
-      - app
+      - laravel
+
+  mysql:
+    image: mariadb:10.6
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: homestead
+      MYSQL_USER: homestead
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: secret
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    networks:
+      - laravel
 
   postgres:
     container_name: postgres
     image: postgres
     environment:
       POSTGRES_DATABASE: test
-      POSTGRES_USER: test
-      POSTGRES_PASSWORD: test
+      POSTGRES_USER: ${POSTGRES_USER:-test}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-test}
       PGDATA: /data/postgres
     volumes:
       - postgres:/data/postgres
     ports:
       - "5432:5432"
     networks:
-      - app
+      - laravel
     restart: unless-stopped
 
   php:
@@ -46,12 +66,18 @@ services:
         - GID=${GID:-1000}
     ports:
       - "9000:9000"
-    depends_on:
-      - postgres
     volumes:
       - ./src:/var/www/html:delegated
     networks:
-      - app
+      - laravel
+
+  redis:
+    image: redis:alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - laravel
 
   composer:
     build:
@@ -66,24 +92,44 @@ services:
       - php
     entrypoint: [ 'composer', '--ignore-platform-reqs' ]
     networks:
-      - app
+      - laravel
 
-  bash:
+  npm:
+    image: node:current-alpine
+    volumes:
+      - ./src:/var/www/html
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+      - "5173:5173"
+    working_dir: /var/www/html
+    entrypoint: [ 'npm' ]
+    networks:
+      - laravel
+
+  artisan:
     build:
       context: ./dockerfiles
       dockerfile: php.dockerfile
       args:
         - UID=${UID:-1000}
         - GID=${GID:-1000}
-    entrypoint: [ 'php', '/var/www/html/']
-    command:
-      - 'php seeder.php'
-    depends_on:
-      - postgres
     volumes:
       - ./src:/var/www/html:delegated
+    depends_on:
+      - mysql
+      - postgres
+    entrypoint: [ 'php', '/var/www/html/artisan' ]
     networks:
-      - app
+      - laravel
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - laravel
 
 volumes:
   postgres:
