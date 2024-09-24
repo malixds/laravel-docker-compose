@@ -8,5 +8,13 @@ use Illuminate\Http\Request;
 
 class UserController extends Controller
 {
-    
+
+
+    public function contacts()
+    {
+        $contacts = auth()->user()->contacts()->get();
+        return view('page.contacts', [
+            'contacts' => $contacts,
+        ]);
+    }
 }
